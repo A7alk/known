@@ -53,6 +53,7 @@ def generate_invertible_matrix(size, mod=26):
             st.write("Found an invertible matrix!")
             return matrix
 
+# Function for Chosen Ciphertext Attack
 def chosen_ciphertext_attack(plain_text, cipher_text, size):
     """Performs Chosen Ciphertext Attack to recover the key matrix."""
     mod = 26
@@ -117,6 +118,7 @@ else:
         if key_matrix is not None:
             st.success("Key Matrix Successfully Recovered!")
             display_matrix(key_matrix, "Final Recovered Key Matrix")
+
 
 
 # Example Instructions
