@@ -1,4 +1,4 @@
-import numpy as np
+ import numpy as np
 from sympy import Matrix
 import streamlit as st
 
@@ -8,12 +8,28 @@ def text_to_numeric(text):
     numeric = [ord(char.upper()) - ord('A') for char in text]
     return numeric
 
+def numeric_to_text(numbers):
+    """Converts numeric values back to text (A=0, B=1, ..., Z=25)."""
+    text = ''.join([chr((num % 26) + ord('A')) for num in numbers])
+    return text
+
 def matrix_mod_inverse(matrix, mod):
-    """Finds the modular inverse of a matrix."""
+    """Finds the modular inverse of a matrix and displays determinant and GCD."""
+    det = int(np.round(np.linalg.det(matrix)))  # Calculate the determinant
+    gcd_value = np.gcd(det, mod)  # Calculate GCD of determinant and mod
+    st.write(f"**Determinant:** {det} **(mod {mod} = {det % mod})**")
+    st.write(f"**GCD(Determinant, {mod}):** {gcd_value}")
+
+    if gcd_value != 1:
+        st.write("**This matrix is not invertible under modulo 26.**")
+        return None
+
     try:
         inv_matrix = Matrix(matrix).inv_mod(mod)
+        st.write(f"**Modular Inverse of Key Matrix (mod {mod}):**\n{inv_matrix}")
         return np.array(inv_matrix).astype(int)
     except:
+        st.write("Matrix is not invertible under modulo", mod)
         return None
 
 def display_matrix(matrix, title="Matrix"):
@@ -91,6 +107,7 @@ st.write("""
 3. **Ciphertext**: Enter the corresponding ciphertext.
 4. **Perform Attack**: Click the button to perform the Chosen Ciphertext Attack.
 """)
+
 
 
     
