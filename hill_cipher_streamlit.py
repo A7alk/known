@@ -1,35 +1,35 @@
 import numpy as np
 from sympy import Matrix
 import streamlit as st
+import random
 
 # Utility Functions
 def text_to_numeric(text):
     """Converts text to numeric values (A=0, B=1, ..., Z=25)."""
-    numeric = [ord(char.upper()) - ord('A') for char in text]
-    return numeric
+    return [ord(char.upper()) - ord('A') for char in text]
 
 def numeric_to_text(numbers):
     """Converts numeric values back to text (A=0, B=1, ..., Z=25)."""
-    text = ''.join([chr((num % 26) + ord('A')) for num in numbers])
-    return text
+    return ''.join([chr((num % 26) + ord('A')) for num in numbers])
 
 def matrix_mod_inverse(matrix, mod):
     """Finds the modular inverse of a matrix and displays determinant and GCD."""
     det = int(np.round(np.linalg.det(matrix)))  # Calculate the determinant
     gcd_value = np.gcd(det, mod)  # Calculate GCD of determinant and mod
 
-    # Convert determinant to positive value under modulo 26
+    # Convert determinant to positive under modulo 26
     det = det % mod
-    st.write(f"**Determinant:** {det} (mod {mod})")
+
+    st.write(f"**Determinant:** {det} **(mod {mod})**")
     st.write(f"**GCD(Determinant, {mod}):** {gcd_value}")
 
     if gcd_value != 1:
-        st.write("**This matrix is not invertible under modulo 26. Please regenerate the matrix or use another pair.**")
+        st.error("This matrix is not invertible under modulo 26 because GCD(det, 26) is not 1.")
         return None
 
     try:
         inv_matrix = Matrix(matrix).inv_mod(mod)
-        st.write(f"**Modular Inverse of the Matrix (mod {mod}):**\n{inv_matrix}")
+        st.write(f"**Modular Inverse of Key Matrix (mod {mod}):**\n{inv_matrix}")
         return np.array(inv_matrix).astype(int)
     except:
         st.write("Matrix is not invertible under modulo", mod)
@@ -48,16 +48,29 @@ def generate_invertible_matrix(size, mod=26):
         det = int(np.round(np.linalg.det(matrix)))  # Calculate determinant
         gcd_value = np.gcd(det, mod)  # Calculate GCD
 
-        # Check if the matrix is invertible
-        if gcd_value == 1:
+        if gcd_value == 1:  # Check if the matrix is invertible
             return matrix
 
-# Function for Chosen Ciphertext Attack
-def chosen_ciphertext_attack(plain_text, cipher_text, size):
+def chosen_ciphertext_attack(plain_text, cipher_text, size, auto_generate=False):
     """Performs Chosen Ciphertext Attack to recover the key matrix."""
     mod = 26
 
-    # Step 1: Prepare the plaintext and ciphertext matrices
+    if auto_generate:
+        st.write("### Automatically Generating an Invertible Plaintext Matrix...")
+        # Generate an invertible plaintext matrix and its corresponding ciphertext matrix
+        plain_matrix = generate_invertible_matrix(size)
+        st.write("**Generated Invertible Plaintext Matrix:**")
+        display_matrix(plain_matrix, "Generated Plaintext Matrix (Invertible)")
+
+        # Generate a random ciphertext matrix of the same size
+        cipher_matrix = generate_invertible_matrix(size)
+        st.write("**Generated Ciphertext Matrix:**")
+        display_matrix(cipher_matrix, "Generated Ciphertext Matrix")
+
+        # Return these matrices for automatic attack demonstration
+        return plain_matrix, cipher_matrix
+
+    # Step 1: Convert the input plaintext and ciphertext to numeric values
     st.write("### Step 1: Preparing the Plaintext and Ciphertext Matrices (Column-wise)")
     plain_numeric = text_to_numeric(plain_text)
     cipher_numeric = text_to_numeric(cipher_text)
@@ -66,18 +79,17 @@ def chosen_ciphertext_attack(plain_text, cipher_text, size):
     st.write(f"**Ciphertext Numeric Values:** {cipher_numeric}")
 
     # Step 2: Reshape into column-wise matrices
-    plain_matrix = np.array(plain_numeric).reshape(size, size, order='F')  # Column-major order
-    cipher_matrix = np.array(cipher_numeric).reshape(size, size, order='F')  # Column-major order
+    plain_matrix = np.array(plain_numeric).reshape(size, size, order='F')
+    cipher_matrix = np.array(cipher_numeric).reshape(size, size, order='F')
 
     display_matrix(plain_matrix, "Plaintext Matrix (Column-wise)")
     display_matrix(cipher_matrix, "Ciphertext Matrix (Column-wise)")
 
-    # Step 3: Find the inverse of the Plaintext Matrix
+    # Step 3: Calculate the Inverse of the Plaintext Matrix
     st.write("### Step 3: Calculating the Inverse of the Plaintext Matrix")
     inv_plain_matrix = matrix_mod_inverse(plain_matrix, mod)
     if inv_plain_matrix is None:
-        st.error("The plaintext matrix is not invertible under modulo 26. Click 'Generate New Pair' to try another matrix.")
-        return None
+        return None, None
 
     display_matrix(inv_plain_matrix, "Inverse of Plaintext Matrix (mod 26)")
 
@@ -86,7 +98,7 @@ def chosen_ciphertext_attack(plain_text, cipher_text, size):
     key_matrix = np.dot(cipher_matrix, inv_plain_matrix) % mod
     display_matrix(key_matrix, "Recovered Key Matrix (mod 26)")
 
-    return key_matrix
+    return plain_matrix, key_matrix
 
 # Streamlit UI for Hill Cipher - Chosen Ciphertext Attack
 st.title("Hill Cipher - Chosen Ciphertext Attack")
@@ -96,11 +108,8 @@ st.write("This app demonstrates a chosen ciphertext attack on the Hill Cipher fo
 st.subheader("Step 1: Input Known Plaintext and Ciphertext")
 matrix_size = st.selectbox("Select Matrix Size", [2, 3], index=0)
 
-# Generate a Random Invertible Plaintext Matrix
-if st.button("Generate Invertible Plaintext Matrix"):
-    random_matrix = generate_invertible_matrix(matrix_size)
-    st.write("### Generated Invertible Plaintext Matrix")
-    display_matrix(random_matrix, "Random Invertible Plaintext Matrix")
+# Option to Automatically Generate a Valid Matrix Pair
+auto_generate = st.checkbox("Automatically Generate a Valid Plaintext-Ciphertext Pair")
 
 # Inputs for Plaintext and Ciphertext
 plain_text_input = st.text_input("Enter a Known Plaintext:", value="ACTG" if matrix_size == 2 else "ATTACKNOW")
@@ -113,7 +122,7 @@ if len(plain_text_input) != expected_length or len(cipher_text_input) != expecte
 else:
     if st.button("Perform Chosen Ciphertext Attack"):
         # Perform the Chosen Ciphertext Attack
-        key_matrix = chosen_ciphertext_attack(plain_text_input, cipher_text_input, matrix_size)
+        plain_matrix, key_matrix = chosen_ciphertext_attack(plain_text_input, cipher_text_input, matrix_size, auto_generate)
         
         if key_matrix is not None:
             st.success("Key Matrix Successfully Recovered!")
@@ -126,7 +135,6 @@ st.write("""
 1. **Matrix Size**: Select either a 2x2 or 3x3 matrix size.
 2. **Plaintext**: Enter a known plaintext of appropriate length (4 characters for 2x2, 9 characters for 3x3).
 3. **Ciphertext**: Enter the corresponding ciphertext.
-4. **Perform Attack**: Click the button to perform the Chosen Ciphertext Attack.
-5. **Generate Invertible Matrix**: Use this option if needed.
+4. **Automatically Generate**: Optionally enable the checkbox to automatically generate a valid pair.
 """)
 
