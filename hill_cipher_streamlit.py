@@ -43,22 +43,22 @@ def chosen_ciphertext_attack(plain_text, cipher_text, size):
     mod = 26
 
     # Step 1: Prepare the plaintext and ciphertext matrices
-    st.write("### Step 1: Preparing the Plaintext and Ciphertext Matrices")
+    st.write("### Step 1: Preparing the Plaintext and Ciphertext Matrices (Column-wise)")
     plain_numeric = text_to_numeric(plain_text)
     cipher_numeric = text_to_numeric(cipher_text)
 
     st.write(f"**Plaintext Numeric Values:** {plain_numeric}")
     st.write(f"**Ciphertext Numeric Values:** {cipher_numeric}")
 
-    # Break into matrix form
-    plain_matrix = np.array(plain_numeric).reshape(size, size)
-    cipher_matrix = np.array(cipher_numeric).reshape(size, size)
+    # Step 2: Reshape into column-wise matrices
+    plain_matrix = np.array(plain_numeric).reshape(size, size, order='F')  # Use 'F' for column-major order
+    cipher_matrix = np.array(cipher_numeric).reshape(size, size, order='F')  # Use 'F' for column-major order
 
-    display_matrix(plain_matrix, "Plaintext Matrix")
-    display_matrix(cipher_matrix, "Ciphertext Matrix")
+    display_matrix(plain_matrix, "Plaintext Matrix (Column-wise)")
+    display_matrix(cipher_matrix, "Ciphertext Matrix (Column-wise)")
 
-    # Step 2: Find the inverse of the Plaintext Matrix
-    st.write("### Step 2: Calculating the Inverse of the Plaintext Matrix")
+    # Step 3: Find the inverse of the Plaintext Matrix
+    st.write("### Step 3: Calculating the Inverse of the Plaintext Matrix")
     inv_plain_matrix = matrix_mod_inverse(plain_matrix, mod)
     if inv_plain_matrix is None:
         st.error("The plaintext matrix is not invertible under modulo 26. Please choose another pair.")
@@ -66,8 +66,8 @@ def chosen_ciphertext_attack(plain_text, cipher_text, size):
 
     display_matrix(inv_plain_matrix, "Inverse of Plaintext Matrix (mod 26)")
 
-    # Step 3: Calculate the Key Matrix using the equation: Key = Cipher * Inverse(Plain)
-    st.write("### Step 3: Calculating the Key Matrix using `Key = Cipher * Inverse(Plain)`")
+    # Step 4: Calculate the Key Matrix using the equation: Key = Cipher * Inverse(Plain)
+    st.write("### Step 4: Calculating the Key Matrix using `Key = Cipher * Inverse(Plain)`")
     key_matrix = np.dot(cipher_matrix, inv_plain_matrix) % mod
     display_matrix(key_matrix, "Recovered Key Matrix (mod 26)")
 
@@ -75,7 +75,7 @@ def chosen_ciphertext_attack(plain_text, cipher_text, size):
 
 # Streamlit UI for Hill Cipher - Chosen Ciphertext Attack
 st.title("Hill Cipher - Chosen Ciphertext Attack")
-st.write("This app demonstrates a chosen ciphertext attack on the Hill Cipher for 2x2 and 3x3 matrices.")
+st.write("This app demonstrates a chosen ciphertext attack on the Hill Cipher for 2x2 and 3x3 matrices, using column-wise matrices.")
 
 # Input for Known Plaintext and Ciphertext
 st.subheader("Step 1: Input Known Plaintext and Ciphertext")
@@ -107,7 +107,3 @@ st.write("""
 3. **Ciphertext**: Enter the corresponding ciphertext.
 4. **Perform Attack**: Click the button to perform the Chosen Ciphertext Attack.
 """)
-
-
-
-    
