@@ -22,7 +22,7 @@ def matrix_mod_inverse(matrix, mod):
     st.write(f"**GCD(Determinant, {mod}):** {gcd_value}")
 
     if gcd_value != 1:
-        st.write("**This matrix is not invertible under modulo 26.**")
+        st.write("**This matrix is not invertible under modulo 26.** Please regenerate the matrix or use another pair.")
         return None
 
     try:
@@ -73,7 +73,7 @@ def chosen_ciphertext_attack(plain_text, cipher_text, size):
     st.write("### Step 3: Calculating the Inverse of the Plaintext Matrix")
     inv_plain_matrix = matrix_mod_inverse(plain_matrix, mod)
     if inv_plain_matrix is None:
-        st.error("The plaintext matrix is not invertible under modulo 26. Please choose another pair.")
+        st.error("The plaintext matrix is not invertible under modulo 26. Click 'Generate New Pair' to try another matrix.")
         return None
 
     display_matrix(inv_plain_matrix, "Inverse of Plaintext Matrix (mod 26)")
