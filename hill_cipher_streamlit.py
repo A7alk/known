@@ -1,6 +1,7 @@
 import numpy as np
 from sympy import Matrix
 import streamlit as st
+import random
 
 # Utility Functions
 def text_to_numeric(text):
@@ -36,6 +37,17 @@ def display_matrix(matrix, title="Matrix"):
     """Displays a matrix in Streamlit UI."""
     st.write(f"**{title}**")
     st.write(matrix)
+
+def generate_invertible_matrix(size, mod=26):
+    """Generates a random invertible matrix under modulo 26."""
+    while True:
+        # Generate a random matrix of the given size
+        matrix = np.random.randint(0, mod, (size, size))
+        det = int(np.round(np.linalg.det(matrix)))  # Calculate determinant
+        gcd_value = np.gcd(det, mod)  # Calculate GCD
+
+        if gcd_value == 1:
+            return matrix
 
 # Function for Chosen Ciphertext Attack
 def chosen_ciphertext_attack(plain_text, cipher_text, size):
@@ -81,6 +93,12 @@ st.write("This app demonstrates a chosen ciphertext attack on the Hill Cipher fo
 st.subheader("Step 1: Input Known Plaintext and Ciphertext")
 matrix_size = st.selectbox("Select Matrix Size", [2, 3], index=0)
 
+# Generate a Random Invertible Plaintext Matrix
+if st.button("Generate Invertible Plaintext Matrix"):
+    random_matrix = generate_invertible_matrix(matrix_size)
+    st.write("### Generated Invertible Plaintext Matrix")
+    display_matrix(random_matrix, "Random Invertible Plaintext Matrix")
+
 # Inputs for Plaintext and Ciphertext
 plain_text_input = st.text_input("Enter a Known Plaintext:", value="ACTG" if matrix_size == 2 else "ATTACKNOW")
 cipher_text_input = st.text_input("Enter the Corresponding Ciphertext:", value="PQMI" if matrix_size == 2 else "FTZZHPXOA")
@@ -106,4 +124,6 @@ st.write("""
 2. **Plaintext**: Enter a known plaintext of appropriate length (4 characters for 2x2, 9 characters for 3x3).
 3. **Ciphertext**: Enter the corresponding ciphertext.
 4. **Perform Attack**: Click the button to perform the Chosen Ciphertext Attack.
+5. **Generate Invertible Matrix**: Use this option if needed.
 """)
+
