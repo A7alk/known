@@ -1,103 +1,96 @@
-
 import numpy as np
 from sympy import Matrix
 import streamlit as st
 
-# Hill Cipher Functions with Streamlit Output
-def mod_inverse(matrix, mod):
-    try:
-        inv_matrix = Matrix(matrix).inv_mod(mod)
-        st.write(f"**Modular Inverse of Key Matrix (mod {mod}):**\n{inv_matrix}")
-        return np.array(inv_matrix).astype(int)
-    except:
-        st.write("Matrix is not invertible under modulo", mod)
-        return None
-
-def matrix_mod_mult(matrix, vector, mod):
-    st.write(f"Matrix:\n{matrix}")
-    st.write(f"Vector:\n{vector}")
-    result = np.dot(matrix, vector)
-    st.write(f"Matrix Multiplication Result (before mod {mod}):\n{result}")
-    result_mod = result % mod
-    st.write(f"Result after Modulo {mod} Operation:\n{result_mod}\n")
-    return result_mod
-
+# Utility Functions
 def text_to_numeric(text):
+    """Converts text to numeric values (A=0, B=1, ..., Z=25)."""
     numeric = [ord(char.upper()) - ord('A') for char in text]
-    st.write(f"Text '{text}' to Numeric: {numeric}")
     return numeric
 
-def numeric_to_text(numbers):
-    text = ''.join([chr((num % 26) + ord('A')) for num in numbers])
-    st.write(f"Numeric {numbers} to Text: '{text}'")
-    return text
-
-def pad_text(text, size):
-    st.write(f"Original Text: '{text}'")
-    while len(text) % size != 0:
-        text += 'X'
-    st.write(f"Padded Text: '{text}' (to match matrix size {size})\n")
-    return text
-
-def hill_encrypt(plain_text, key_matrix):
-    mod = 26
-    plain_text = pad_text(plain_text, len(key_matrix))
-    numeric_plain = text_to_numeric(plain_text)
-    cipher_text = ''
-
-    # Break text into chunks and encrypt using the key matrix
-    for i in range(0, len(numeric_plain), len(key_matrix)):
-        chunk = numeric_plain[i:i + len(key_matrix)]
-        st.write(f"\nEncrypting Chunk: {chunk}")
-        encrypted_chunk = matrix_mod_mult(key_matrix, chunk, mod)
-        cipher_text += numeric_to_text(encrypted_chunk)
-
-    return cipher_text
-
-def hill_decrypt(cipher_text, key_matrix):
-    mod = 26
-    st.write("\n--- Decryption Process ---")
-    st.write(f"Cipher Text: {cipher_text}\n")
-    inv_key_matrix = mod_inverse(key_matrix, mod)
-    if inv_key_matrix is None:
+def matrix_mod_inverse(matrix, mod):
+    """Finds the modular inverse of a matrix."""
+    try:
+        inv_matrix = Matrix(matrix).inv_mod(mod)
+        return np.array(inv_matrix).astype(int)
+    except:
         return None
 
-    numeric_cipher = text_to_numeric(cipher_text)
-    plain_text = ''
+def display_matrix(matrix, title="Matrix"):
+    """Displays a matrix in Streamlit UI."""
+    st.write(f"**{title}**")
+    st.write(matrix)
 
-    # Break cipher text into chunks and decrypt using the inverse matrix
-    for i in range(0, len(numeric_cipher), len(key_matrix)):
-        chunk = numeric_cipher[i:i + len(key_matrix)]
-        st.write(f"\nDecrypting Chunk: {chunk}")
-        decrypted_chunk = matrix_mod_mult(inv_key_matrix, chunk, mod)
-        plain_text += numeric_to_text(decrypted_chunk)
+# Function for Chosen Ciphertext Attack
+def chosen_ciphertext_attack(plain_text, cipher_text, size):
+    """Performs Chosen Ciphertext Attack to recover the key matrix."""
+    mod = 26
 
-    return plain_text
+    # Step 1: Prepare the plaintext and ciphertext matrices
+    st.write("### Step 1: Preparing the Plaintext and Ciphertext Matrices")
+    plain_numeric = text_to_numeric(plain_text)
+    cipher_numeric = text_to_numeric(cipher_text)
 
-# Streamlit Web Interface
-st.title("Hill Cipher Web App with Intermediate Steps")
-st.write("A simple web app to demonstrate Hill Cipher encryption, decryption, and detailed steps.")
+    st.write(f"**Plaintext Numeric Values:** {plain_numeric}")
+    st.write(f"**Ciphertext Numeric Values:** {cipher_numeric}")
 
-# Inputs
-message = st.text_input("Enter the message:")
-matrix_size = st.number_input("Matrix Size (2 or 3):", min_value=2, max_value=3, value=2)
-key_values = st.text_input("Enter Key Matrix Values (space-separated):")
+    # Break into matrix form
+    plain_matrix = np.array(plain_numeric).reshape(size, size)
+    cipher_matrix = np.array(cipher_numeric).reshape(size, size)
 
-# Run the operations
-if st.button("Encrypt"):
-    try:
-        key_matrix_np = np.array(list(map(int, key_values.split()))).reshape(matrix_size, matrix_size)
-        st.write(f"**Key Matrix:**\n{key_matrix_np}")
-        encrypted_message = hill_encrypt(message, key_matrix_np)
-        st.success(f"Encrypted Message: {encrypted_message}")
-    except:
-        st.error("Encryption failed. Check your inputs and key matrix.")
+    display_matrix(plain_matrix, "Plaintext Matrix")
+    display_matrix(cipher_matrix, "Ciphertext Matrix")
 
-if st.button("Decrypt"):
-    try:
-        key_matrix_np = np.array(list(map(int, key_values.split()))).reshape(matrix_size, matrix_size)
-        st.write(f"**Key Matrix:**\n{key_matrix_np}")
-        decrypted_message = hill_decrypt(message, key_matrix_np)
-        st.success(f"Decrypted Message: {decrypted_message}")
-    except:
-        st.error("Decryption failed. Check your inputs and key matrix.")
+    # Step 2: Find the inverse of the Plaintext Matrix
+    st.write("### Step 2: Calculating the Inverse of the Plaintext Matrix")
+    inv_plain_matrix = matrix_mod_inverse(plain_matrix, mod)
+    if inv_plain_matrix is None:
+        st.error("The plaintext matrix is not invertible under modulo 26. Please choose another pair.")
+        return None
+
+    display_matrix(inv_plain_matrix, "Inverse of Plaintext Matrix (mod 26)")
+
+    # Step 3: Calculate the Key Matrix using the equation: Key = Cipher * Inverse(Plain)
+    st.write("### Step 3: Calculating the Key Matrix using `Key = Cipher * Inverse(Plain)`")
+    key_matrix = np.dot(cipher_matrix, inv_plain_matrix) % mod
+    display_matrix(key_matrix, "Recovered Key Matrix (mod 26)")
+
+    return key_matrix
+
+# Streamlit UI for Hill Cipher - Chosen Ciphertext Attack
+st.title("Hill Cipher - Chosen Ciphertext Attack")
+st.write("This app demonstrates a chosen ciphertext attack on the Hill Cipher for 2x2 and 3x3 matrices.")
+
+# Input for Known Plaintext and Ciphertext
+st.subheader("Step 1: Input Known Plaintext and Ciphertext")
+matrix_size = st.selectbox("Select Matrix Size", [2, 3], index=0)
+
+# Inputs for Plaintext and Ciphertext
+plain_text_input = st.text_input("Enter a Known Plaintext:", value="ACTG" if matrix_size == 2 else "ATTACKNOW")
+cipher_text_input = st.text_input("Enter the Corresponding Ciphertext:", value="PQMI" if matrix_size == 2 else "FTZZHPXOA")
+
+# Ensure the input lengths match the chosen matrix size
+expected_length = matrix_size ** 2
+if len(plain_text_input) != expected_length or len(cipher_text_input) != expected_length:
+    st.warning(f"Please enter exactly {expected_length} characters for the plaintext and ciphertext.")
+else:
+    if st.button("Perform Chosen Ciphertext Attack"):
+        # Perform the Chosen Ciphertext Attack
+        key_matrix = chosen_ciphertext_attack(plain_text_input, cipher_text_input, matrix_size)
+        
+        if key_matrix is not None:
+            st.success("Key Matrix Successfully Recovered!")
+            display_matrix(key_matrix, "Final Recovered Key Matrix")
+
+# Example Instructions
+st.write("---")
+st.write("### Instructions:")
+st.write("""
+1. **Matrix Size**: Select either a 2x2 or 3x3 matrix size.
+2. **Plaintext**: Enter a known plaintext of appropriate length (4 characters for 2x2, 9 characters for 3x3).
+3. **Ciphertext**: Enter the corresponding ciphertext.
+4. **Perform Attack**: Click the button to perform the Chosen Ciphertext Attack.
+""")
+
+
+    
