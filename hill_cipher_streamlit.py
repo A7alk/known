@@ -38,30 +38,21 @@ def display_matrix(matrix, title="Matrix"):
     st.write(f"**{title}**")
     st.write(matrix)
 
-def make_matrix_invertible(matrix, mod=26):
-    """Attempts to make the matrix invertible by modifying its elements slightly."""
-    det = int(np.round(np.linalg.det(matrix))) % mod
-    gcd_value = np.gcd(det, mod)
+def generate_invertible_matrix(size, mod=26):
+    """Generates a random invertible matrix under modulo 26."""
     attempt_count = 0
-
-    while gcd_value != 1:
+    while True:
         attempt_count += 1
-        # Randomly modify a single element in the matrix to change its determinant
-        i, j = np.random.randint(0, matrix.shape[0]), np.random.randint(0, matrix.shape[1])
-        matrix[i][j] = (matrix[i][j] + 1) % mod  # Increment the value at (i, j)
+        # Generate a random matrix of the given size
+        matrix = np.random.randint(0, mod, (size, size))
+        det = int(np.round(np.linalg.det(matrix)))  # Calculate determinant
+        gcd_value = np.gcd(det, mod)  # Calculate GCD
 
-        # Recalculate determinant and GCD
-        det = int(np.round(np.linalg.det(matrix))) % mod
-        gcd_value = np.gcd(det, mod)
-        st.write(f"Attempt {attempt_count}: Modified matrix element at position ({i}, {j}), Determinant = {det}, GCD(Det, 26) = {gcd_value}")
+        st.write(f"Attempt {attempt_count}: Determinant = {det} (mod {mod} = {det % mod}), GCD(Determinant, {mod}) = {gcd_value}")
+        if gcd_value == 1:  # Check if the matrix is invertible
+            st.write("Found an invertible matrix!")
+            return matrix
 
-        if attempt_count > 100:  # Prevent infinite loops
-            st.error("Unable to find an invertible matrix after 100 attempts. Please try a different matrix.")
-            break
-
-    return matrix
-
-# Function for Chosen Ciphertext Attack
 def chosen_ciphertext_attack(plain_text, cipher_text, size):
     """Performs Chosen Ciphertext Attack to recover the key matrix."""
     mod = 26
@@ -85,12 +76,12 @@ def chosen_ciphertext_attack(plain_text, cipher_text, size):
     st.write("### Step 3: Calculating the Inverse of the Plaintext Matrix")
     inv_plain_matrix, gcd_value = matrix_mod_inverse(plain_matrix, mod)
     if inv_plain_matrix is None:
-        st.warning(f"The plaintext matrix is not invertible because GCD(det, 26) = {gcd_value}. Attempting to modify it...")
-        plain_matrix = make_matrix_invertible(plain_matrix, mod)
+        st.warning(f"The plaintext matrix is not invertible because GCD(det, 26) = {gcd_value}. Generating a new matrix...")
+        plain_matrix = generate_invertible_matrix(size, mod)
         inv_plain_matrix, _ = matrix_mod_inverse(plain_matrix, mod)
 
     if inv_plain_matrix is None:
-        st.error("Unable to make the matrix invertible after modification attempts.")
+        st.error("Unable to find an invertible matrix. Please try again.")
         return None
 
     display_matrix(inv_plain_matrix, "Inverse of Plaintext Matrix (mod 26)")
@@ -126,6 +117,7 @@ else:
         if key_matrix is not None:
             st.success("Key Matrix Successfully Recovered!")
             display_matrix(key_matrix, "Final Recovered Key Matrix")
+
 
 # Example Instructions
 st.write("---")
