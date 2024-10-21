@@ -12,27 +12,34 @@ def numeric_to_text(numbers):
     return ''.join([chr((num % 26) + ord('A')) for num in numbers])
 
 def matrix_mod_inverse(matrix, mod):
-    """Finds the modular inverse of a matrix and displays determinant and GCD."""
+    """Finds the modular inverse of a matrix and displays detailed steps."""
     det = int(np.round(np.linalg.det(matrix)))  # Calculate the determinant
-    gcd_value = np.gcd(det, mod)  # Calculate GCD of determinant and mod
+    st.write(f"Step 1: **Determinant** of the matrix: {det} (mod {mod} = {det % mod})")
 
-    # Convert determinant to positive under modulo 26
-    det = det % mod
-
-    st.write(f"**Determinant:** {det} **(mod {mod})**")
-    st.write(f"**GCD(Determinant, {mod}):** {gcd_value}")
+    # GCD check
+    gcd_value = np.gcd(det, mod)
+    st.write(f"Step 2: **GCD** of determinant and {mod}: {gcd_value}")
 
     if gcd_value != 1:
-        st.error("This matrix is not invertible under modulo 26 because GCD(det, 26) is not 1.")
+        st.error("Matrix is not invertible under mod 26 because GCD(det, 26) is not 1.")
         return None
 
-    try:
-        inv_matrix = Matrix(matrix).inv_mod(mod)
-        st.write(f"**Modular Inverse of the Matrix (mod {mod}):**\n{inv_matrix}")
-        return np.array(inv_matrix).astype(int)
-    except:
-        st.write("Matrix is not invertible under modulo", mod)
-        return None
+    # Calculate inverse of determinant mod 26
+    det_mod_inv = pow(det % mod, -1, mod)
+    st.write(f"Step 3: **Modular Inverse** of determinant under mod {mod}: {det_mod_inv}")
+
+    # Calculate adjugate matrix
+    cofactor_matrix = np.linalg.inv(matrix).T * det  # Adjugate calculation
+    adjugate_matrix = np.round(cofactor_matrix).astype(int) % mod
+    st.write("Step 4: **Adjugate Matrix** (Cofactor Matrix Transposed mod 26):")
+    st.write(adjugate_matrix)
+
+    # Final inverse matrix calculation
+    inv_matrix = (det_mod_inv * adjugate_matrix) % mod
+    st.write(f"Step 5: **Inverse Matrix (mod {mod})**:")
+    st.write(inv_matrix)
+
+    return inv_matrix
 
 def display_matrix(matrix, title="Matrix"):
     """Displays a matrix in Streamlit UI."""
@@ -49,27 +56,25 @@ def generate_invertible_matrix(size, mod=26):
         det = int(np.round(np.linalg.det(matrix)))  # Calculate determinant
         gcd_value = np.gcd(det, mod)  # Calculate GCD
 
-        st.write(f"Attempt {attempt_count}: Determinant = {det} (mod {mod} = {det % mod}), GCD(Determinant, {mod}) = {gcd_value}")
         if gcd_value == 1:  # Check if the matrix is invertible
-            st.write("Found an invertible matrix!")
             return matrix
 
-# Function for Chosen Ciphertext Attack
+# Function for Chosen Ciphertext Attack (Finding Decryption Key)
 def chosen_ciphertext_attack(plain_text, cipher_text, size, auto_generate=False):
-    """Performs Chosen Ciphertext Attack to recover the key matrix."""
+    """Performs Chosen Ciphertext Attack to recover the decryption key."""
     mod = 26
 
     if auto_generate:
-        st.write("### Automatically Generating an Invertible Plaintext Matrix...")
-        # Generate an invertible plaintext matrix and its corresponding ciphertext matrix
-        plain_matrix = generate_invertible_matrix(size)
-        st.write("**Generated Invertible Plaintext Matrix:**")
-        display_matrix(plain_matrix, "Generated Plaintext Matrix (Invertible)")
-
-        # Generate a random ciphertext matrix of the same size
+        st.write("### Automatically Generating an Invertible Ciphertext Matrix...")
+        # Generate an invertible ciphertext matrix and its corresponding plaintext matrix
         cipher_matrix = generate_invertible_matrix(size)
-        st.write("**Generated Ciphertext Matrix:**")
-        display_matrix(cipher_matrix, "Generated Ciphertext Matrix")
+        st.write("**Generated Invertible Ciphertext Matrix:**")
+        display_matrix(cipher_matrix, "Generated Ciphertext Matrix (Invertible)")
+
+        # Generate a random plaintext matrix of the same size
+        plain_matrix = generate_invertible_matrix(size)
+        st.write("**Generated Plaintext Matrix:**")
+        display_matrix(plain_matrix, "Generated Plaintext Matrix")
 
         # Return these matrices for automatic attack demonstration
         return plain_matrix, cipher_matrix
@@ -89,20 +94,20 @@ def chosen_ciphertext_attack(plain_text, cipher_text, size, auto_generate=False)
     display_matrix(plain_matrix, "Plaintext Matrix (Column-wise)")
     display_matrix(cipher_matrix, "Ciphertext Matrix (Column-wise)")
 
-    # Step 3: Calculate the Inverse of the Plaintext Matrix
-    st.write("### Step 3: Calculating the Inverse of the Plaintext Matrix")
-    inv_plain_matrix = matrix_mod_inverse(plain_matrix, mod)
-    if inv_plain_matrix is None:
+    # Step 3: Calculate the Inverse of the Ciphertext Matrix
+    st.write("### Step 3: Calculating the Inverse of the Ciphertext Matrix")
+    inv_cipher_matrix = matrix_mod_inverse(cipher_matrix, mod)
+    if inv_cipher_matrix is None:
         return None, None
 
-    display_matrix(inv_plain_matrix, "Inverse of Plaintext Matrix (mod 26)")
+    display_matrix(inv_cipher_matrix, "Inverse of Ciphertext Matrix (mod 26)")
 
-    # Step 4: Calculate the Key Matrix using the equation: Key = Cipher * Inverse(Plain)
-    st.write("### Step 4: Calculating the Key Matrix using `Key = Cipher * Inverse(Plain)`")
-    key_matrix = np.dot(cipher_matrix, inv_plain_matrix) % mod
-    display_matrix(key_matrix, "Recovered Key Matrix (mod 26)")
+    # Step 4: Calculate the Decryption Key using the equation: Decryption Key = Inverse(Cipher) * Plain
+    st.write("### Step 4: Calculating the Decryption Key using `Decryption Key = Inverse(Cipher) * Plain`")
+    decryption_key_matrix = np.dot(inv_cipher_matrix, plain_matrix) % mod
+    display_matrix(decryption_key_matrix, "Recovered Decryption Key Matrix (mod 26)")
 
-    return plain_matrix, key_matrix
+    return plain_matrix, decryption_key_matrix
 
 # Streamlit UI for Hill Cipher - Chosen Ciphertext Attack
 st.title("Hill Cipher - Chosen Ciphertext Attack")
@@ -126,11 +131,11 @@ if len(plain_text_input) != expected_length or len(cipher_text_input) != expecte
 else:
     if st.button("Perform Chosen Ciphertext Attack"):
         # Perform the Chosen Ciphertext Attack
-        plain_matrix, key_matrix = chosen_ciphertext_attack(plain_text_input, cipher_text_input, matrix_size, auto_generate)
+        plain_matrix, decryption_key_matrix = chosen_ciphertext_attack(plain_text_input, cipher_text_input, matrix_size, auto_generate)
         
-        if key_matrix is not None:
-            st.success("Key Matrix Successfully Recovered!")
-            display_matrix(key_matrix, "Final Recovered Key Matrix")
+        if decryption_key_matrix is not None:
+            st.success("Decryption Key Matrix Successfully Recovered!")
+            display_matrix(decryption_key_matrix, "Final Recovered Decryption Key Matrix")
 
 # Example Instructions
 st.write("---")
@@ -140,7 +145,9 @@ st.write("""
 2. **Plaintext**: Enter a known plaintext of appropriate length (4 characters for 2x2, 9 characters for 3x3).
 3. **Ciphertext**: Enter the corresponding ciphertext.
 4. **Automatically Generate**: Optionally enable the checkbox to automatically generate a valid pair.
-""")                                                                                                                                     
+""")
+
+                                                                                                                               
 
 
 
