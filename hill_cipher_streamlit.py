@@ -67,26 +67,22 @@ def generate_invertible_matrix(size, mod=26):
             return matrix
 
 # Function for Chosen Ciphertext Attack (Finding Decryption Key)
-def chosen_ciphertext_attack(plain_text, cipher_text, size, auto_generate=False):
+def chosen_ciphertext_attack(plain_text, cipher_text, size, auto_generate=False, invert_choice="Ciphertext"):
     """Performs Chosen Ciphertext Attack to recover the decryption key."""
     mod = 26
 
     if auto_generate:
-        st.write("### Automatically Generating an Invertible Ciphertext Matrix...")
-        # Generate an invertible ciphertext matrix and its corresponding plaintext matrix
+        st.write("### Automatically Generating an Invertible Matrix...")
+        # Generate an invertible matrix for both plaintext and ciphertext
         cipher_matrix = generate_invertible_matrix(size)
-        st.write("**Generated Invertible Ciphertext Matrix:**")
-        display_matrix(cipher_matrix, "Generated Ciphertext Matrix (Invertible)")
-
-        # Generate a random plaintext matrix of the same size
         plain_matrix = generate_invertible_matrix(size)
-        st.write("**Generated Plaintext Matrix:**")
-        display_matrix(plain_matrix, "Generated Plaintext Matrix")
 
-        # Return these matrices for automatic attack demonstration
+        # Return generated matrices
+        display_matrix(cipher_matrix, "Generated Ciphertext Matrix")
+        display_matrix(plain_matrix, "Generated Plaintext Matrix")
         return plain_matrix, cipher_matrix
 
-    # Step 1: Convert the input plaintext and ciphertext to numeric values
+    # Convert text input to numeric values
     st.write("### Step 1: Preparing the Plaintext and Ciphertext Matrices (Column-wise)")
     plain_numeric = text_to_numeric(plain_text)
     cipher_numeric = text_to_numeric(cipher_text)
@@ -94,33 +90,43 @@ def chosen_ciphertext_attack(plain_text, cipher_text, size, auto_generate=False)
     st.write(f"**Plaintext Numeric Values:** {plain_numeric}")
     st.write(f"**Ciphertext Numeric Values:** {cipher_numeric}")
 
-    # Step 2: Reshape into column-wise matrices
+    # Reshape into matrices (column-wise)
     plain_matrix = np.array(plain_numeric).reshape(size, size, order='F')
     cipher_matrix = np.array(cipher_numeric).reshape(size, size, order='F')
 
-    display_matrix(plain_matrix, "Plaintext Matrix (Column-wise)")
-    display_matrix(cipher_matrix, "Ciphertext Matrix (Column-wise)")
+    display_matrix(plain_matrix, "Plaintext Matrix")
+    display_matrix(cipher_matrix, "Ciphertext Matrix")
 
-    # Step 3: Calculate the Inverse of the Ciphertext Matrix
-    st.write("### Step 3: Calculating the Inverse of the Ciphertext Matrix")
-    inv_cipher_matrix = matrix_mod_inverse(cipher_matrix, mod)
-    if inv_cipher_matrix is None:
-        return None, None
+    # Step 2: Inversion Based on User Choice
+    if invert_choice == "Ciphertext":
+        st.write("### Step 2: Inverting the Ciphertext Matrix")
+        inv_matrix = matrix_mod_inverse(cipher_matrix, mod)
+        if inv_matrix is None:
+            return None, None
+        display_matrix(inv_matrix, "Inverse of Ciphertext Matrix (mod 26)")
+        
+        # Calculate the decryption key: Decryption Key = Inverse(Ciphertext) * Plaintext
+        st.write("### Step 3: Calculating the Decryption Key")
+        decryption_key_matrix = np.dot(inv_matrix, plain_matrix) % mod
+    else:
+        st.write("### Step 2: Inverting the Plaintext Matrix")
+        inv_matrix = matrix_mod_inverse(plain_matrix, mod)
+        if inv_matrix is None:
+            return None, None
+        display_matrix(inv_matrix, "Inverse of Plaintext Matrix (mod 26)")
 
-    display_matrix(inv_cipher_matrix, "Inverse of Ciphertext Matrix (mod 26)")
+        # Calculate the decryption key: Decryption Key = Ciphertext * Inverse(Plaintext)
+        st.write("### Step 3: Calculating the Decryption Key")
+        decryption_key_matrix = np.dot(cipher_matrix, inv_matrix) % mod
 
-    # Step 4: Calculate the Decryption Key using the equation: Decryption Key = Inverse(Cipher) * Plain
-    st.write("### Step 4: Calculating the Decryption Key using `Decryption Key = Inverse(Cipher) * Plain`")
-    decryption_key_matrix = np.dot(inv_cipher_matrix, plain_matrix) % mod
     display_matrix(decryption_key_matrix, "Recovered Decryption Key Matrix (mod 26)")
-
     return plain_matrix, decryption_key_matrix
 
 # Streamlit UI for Hill Cipher - Chosen Ciphertext Attack
 st.title("Hill Cipher - Chosen Ciphertext Attack")
 st.write("This app demonstrates a chosen ciphertext attack on the Hill Cipher for 2x2 and 3x3 matrices, using column-wise matrices.")
 
-# Input for Known Plaintext and Ciphertext
+# User input for known plaintext and ciphertext
 st.subheader("Step 1: Input Known Plaintext and Ciphertext")
 matrix_size = st.selectbox("Select Matrix Size", [2, 3], index=0)
 
@@ -131,6 +137,9 @@ auto_generate = st.checkbox("Automatically Generate a Valid Plaintext-Ciphertext
 plain_text_input = st.text_input("Enter a Known Plaintext:", value="ACTG" if matrix_size == 2 else "ATTACKNOW")
 cipher_text_input = st.text_input("Enter the Corresponding Ciphertext:", value="PQMI" if matrix_size == 2 else "FTZZHPXOA")
 
+# Choice: Invert Ciphertext or Plaintext
+invert_choice = st.radio("Choose which matrix to invert:", ("Ciphertext", "Plaintext"))
+
 # Ensure the input lengths match the chosen matrix size
 expected_length = matrix_size ** 2
 if len(plain_text_input) != expected_length or len(cipher_text_input) != expected_length:
@@ -138,7 +147,7 @@ if len(plain_text_input) != expected_length or len(cipher_text_input) != expecte
 else:
     if st.button("Perform Chosen Ciphertext Attack"):
         # Perform the Chosen Ciphertext Attack
-        plain_matrix, decryption_key_matrix = chosen_ciphertext_attack(plain_text_input, cipher_text_input, matrix_size, auto_generate)
+        plain_matrix, decryption_key_matrix = chosen_ciphertext_attack(plain_text_input, cipher_text_input, matrix_size, auto_generate, invert_choice)
         
         if decryption_key_matrix is not None:
             st.success("Decryption Key Matrix Successfully Recovered!")
@@ -151,8 +160,10 @@ st.write("""
 1. **Matrix Size**: Select either a 2x2 or 3x3 matrix size.
 2. **Plaintext**: Enter a known plaintext of appropriate length (4 characters for 2x2, 9 characters for 3x3).
 3. **Ciphertext**: Enter the corresponding ciphertext.
-4. **Automatically Generate**: Optionally enable the checkbox to automatically generate a valid pair.
+4. **Matrix Inversion Choice**: Select whether to invert the Ciphertext or Plaintext matrix.
+5. **Automatically Generate**: Optionally enable the checkbox to automatically generate a valid pair.
 """)
+
 
 
                                                                                                                                
