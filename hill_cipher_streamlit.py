@@ -60,16 +60,16 @@ def chosen_ciphertext_attack(plain_text, cipher_text, size, auto_generate=False)
     mod = 26
 
     if auto_generate:
-        st.write("### Automatically Generating an Invertible Plaintext Matrix...")
-        # Generate an invertible plaintext matrix and its corresponding ciphertext matrix
-        plain_matrix = generate_invertible_matrix(size)
-        st.write("**Generated Invertible Plaintext Matrix:**")
-        display_matrix(plain_matrix, "Generated Plaintext Matrix (Invertible)")
-
-        # Generate a random ciphertext matrix of the same size
+        st.write("### Automatically Generating an Invertible Ciphertext Matrix...")
+        # Generate an invertible ciphertext matrix and its corresponding plaintext matrix
         cipher_matrix = generate_invertible_matrix(size)
-        st.write("**Generated Ciphertext Matrix:**")
-        display_matrix(cipher_matrix, "Generated Ciphertext Matrix")
+        st.write("**Generated Invertible Ciphertext Matrix:**")
+        display_matrix(cipher_matrix, "Generated Ciphertext Matrix (Invertible)")
+
+        # Generate a random plaintext matrix of the same size
+        plain_matrix = generate_invertible_matrix(size)
+        st.write("**Generated Plaintext Matrix:**")
+        display_matrix(plain_matrix, "Generated Plaintext Matrix")
 
         # Return these matrices for automatic attack demonstration
         return plain_matrix, cipher_matrix
@@ -89,17 +89,17 @@ def chosen_ciphertext_attack(plain_text, cipher_text, size, auto_generate=False)
     display_matrix(plain_matrix, "Plaintext Matrix (Column-wise)")
     display_matrix(cipher_matrix, "Ciphertext Matrix (Column-wise)")
 
-    # Step 3: Calculate the Inverse of the Plaintext Matrix
-    st.write("### Step 3: Calculating the Inverse of the Plaintext Matrix")
-    inv_plain_matrix = matrix_mod_inverse(plain_matrix, mod)
-    if inv_plain_matrix is None:
+    # Step 3: Calculate the Inverse of the Ciphertext Matrix (instead of plaintext)
+    st.write("### Step 3: Calculating the Inverse of the Ciphertext Matrix")
+    inv_cipher_matrix = matrix_mod_inverse(cipher_matrix, mod)
+    if inv_cipher_matrix is None:
         return None, None
 
-    display_matrix(inv_plain_matrix, "Inverse of Plaintext Matrix (mod 26)")
+    display_matrix(inv_cipher_matrix, "Inverse of Ciphertext Matrix (mod 26)")
 
-    # Step 4: Calculate the Key Matrix using the equation: Key = Cipher * Inverse(Plain)
-    st.write("### Step 4: Calculating the Key Matrix using `Key = Cipher * Inverse(Plain)`")
-    key_matrix = np.dot(cipher_matrix, inv_plain_matrix) % mod
+    # Step 4: Calculate the Key Matrix using the equation: Key = Plain * Inverse(Cipher)
+    st.write("### Step 4: Calculating the Key Matrix using `Key = Plain * Inverse(Cipher)`")
+    key_matrix = np.dot(plain_matrix, inv_cipher_matrix) % mod
     display_matrix(key_matrix, "Recovered Key Matrix (mod 26)")
 
     return plain_matrix, key_matrix
@@ -141,6 +141,7 @@ st.write("""
 3. **Ciphertext**: Enter the corresponding ciphertext.
 4. **Automatically Generate**: Optionally enable the checkbox to automatically generate a valid pair.
 """)
+
 
 
 
