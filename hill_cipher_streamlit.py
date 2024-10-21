@@ -13,30 +13,37 @@ def numeric_to_text(numbers):
 
 def matrix_mod_inverse(matrix, mod):
     """Finds the modular inverse of a matrix and displays detailed steps."""
+    st.write("### Matrix Inversion Steps")
+    
+    # Step 1: Calculate the determinant
     det = int(np.round(np.linalg.det(matrix)))  # Calculate the determinant
-    st.write(f"Step 1: **Determinant** of the matrix: {det} (mod {mod} = {det % mod})")
-
-    # GCD check
+    st.write(f"**Step 1:** Determinant of the matrix: {det} (mod {mod} = {det % mod})")
+    
+    # GCD check to ensure invertibility
     gcd_value = np.gcd(det, mod)
-    st.write(f"Step 2: **GCD** of determinant and {mod}: {gcd_value}")
+    st.write(f"**Step 2:** GCD of determinant and {mod}: {gcd_value}")
 
     if gcd_value != 1:
-        st.error("Matrix is not invertible under mod 26 because GCD(det, 26) is not 1.")
+        st.error("This matrix is not invertible under mod 26 because GCD(det, 26) is not 1.")
         return None
 
-    # Calculate inverse of determinant mod 26
+    # Step 3: Calculate modular inverse of determinant mod 26
     det_mod_inv = pow(det % mod, -1, mod)
-    st.write(f"Step 3: **Modular Inverse** of determinant under mod {mod}: {det_mod_inv}")
+    st.write(f"**Step 3:** Modular inverse of determinant under mod {mod}: {det_mod_inv}")
 
-    # Calculate adjugate matrix
-    cofactor_matrix = np.linalg.inv(matrix).T * det  # Adjugate calculation
+    # Step 4: Calculate cofactor matrix (for adjugate matrix)
+    cofactor_matrix = np.linalg.inv(matrix).T * det  # Cofactor matrix calculation
+    st.write(f"**Step 4:** Cofactor Matrix (before mod {mod}):")
+    st.write(np.round(cofactor_matrix).astype(int))
+
+    # Step 5: Calculate adjugate matrix (transpose of cofactor matrix)
     adjugate_matrix = np.round(cofactor_matrix).astype(int) % mod
-    st.write("Step 4: **Adjugate Matrix** (Cofactor Matrix Transposed mod 26):")
+    st.write(f"**Step 5:** Adjugate Matrix (Cofactor Matrix mod {mod}):")
     st.write(adjugate_matrix)
 
-    # Final inverse matrix calculation
+    # Step 6: Calculate the inverse matrix by multiplying adjugate matrix by modular inverse of determinant
     inv_matrix = (det_mod_inv * adjugate_matrix) % mod
-    st.write(f"Step 5: **Inverse Matrix (mod {mod})**:")
+    st.write(f"**Step 6:** Final Inverse Matrix (mod {mod}):")
     st.write(inv_matrix)
 
     return inv_matrix
@@ -146,6 +153,7 @@ st.write("""
 3. **Ciphertext**: Enter the corresponding ciphertext.
 4. **Automatically Generate**: Optionally enable the checkbox to automatically generate a valid pair.
 """)
+
 
                                                                                                                                
 
