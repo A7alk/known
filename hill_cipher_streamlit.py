@@ -18,17 +18,6 @@ def matrix_mod_inverse(matrix, mod):
     # Convert matrix to sympy Matrix to handle mod inverse
     sympy_matrix = Matrix(matrix)
     
-    # Calculate the determinant and check invertibility
-    det = int(sympy_matrix.det()) % mod
-    gcd_value = np.gcd(det, mod)
-
-    st.write(f"Determinant of matrix: {det} (mod {mod})")
-    st.write(f"GCD of determinant and {mod}: {gcd_value}")
-
-    if gcd_value != 1:
-        st.error(f"This matrix is not invertible under mod {mod} because GCD({det}, {mod}) is {gcd_value}.")
-        return None
-
     try:
         # Find the modular inverse of the matrix using sympy's inv_mod function
         inv_matrix = sympy_matrix.inv_mod(mod)
@@ -154,6 +143,7 @@ st.write("""
 4. **Matrix Inversion Choice**: Select whether to invert the Ciphertext or Plaintext matrix.
 5. **Automatically Generate**: Optionally enable the checkbox to automatically generate a valid pair.
 """)
+
 
 
                                                                                                                                
