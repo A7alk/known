@@ -12,32 +12,41 @@ def numeric_to_text(numbers):
     return ''.join([chr((num % 26) + ord('A')) for num in numbers])
 
 def matrix_mod_inverse(matrix, mod):
-    """Finds the modular inverse of a matrix mod 26 using sympy."""
+    """Finds the modular inverse of a matrix and displays detailed steps."""
     st.write("### Matrix Inversion Steps")
     
-    # Convert matrix to sympy Matrix to handle mod inverse
-    sympy_matrix = Matrix(matrix)
+    # Step 1: Calculate the determinant
+    det = int(np.round(np.linalg.det(matrix)))  # Calculate the determinant
+    st.write(f"**Step 1:** Determinant of the matrix: {det} (mod {mod} = {det % mod})")
     
-    # Calculate the determinant and check invertibility
-    det = int(sympy_matrix.det()) % mod
+    # GCD check to ensure invertibility
     gcd_value = np.gcd(det, mod)
-
-    st.write(f"Determinant of matrix: {det} (mod {mod})")
-    st.write(f"GCD of determinant and {mod}: {gcd_value}")
+    st.write(f"**Step 2:** GCD of determinant and {mod}: {gcd_value}")
 
     if gcd_value != 1:
-        st.error(f"This matrix is not invertible under mod {mod} because GCD({det}, {mod}) is {gcd_value}.")
+        st.error("This matrix is not invertible under mod 26 because GCD(det, 26) is not 1.")
         return None
 
-    try:
-        # Find the modular inverse of the matrix using sympy's inv_mod function
-        inv_matrix = sympy_matrix.inv_mod(mod)
-        st.write(f"**Step:** Modular Inverse of Matrix (mod {mod}):")
-        st.write(np.array(inv_matrix).astype(int))  # Display the matrix as a NumPy array
-        return np.array(inv_matrix).astype(int)
-    except ValueError as e:
-        st.error(f"Matrix is not invertible under mod {mod}. Error: {str(e)}")
-        return None
+    # Step 3: Calculate modular inverse of determinant mod 26
+    det_mod_inv = pow(det % mod, -1, mod)
+    st.write(f"**Step 3:** Modular inverse of determinant under mod {mod}: {det_mod_inv}")
+
+    # Step 4: Calculate cofactor matrix (for adjugate matrix)
+    cofactor_matrix = np.linalg.inv(matrix).T * det  # Cofactor matrix calculation
+    st.write(f"**Step 4:** Cofactor Matrix (before mod {mod}):")
+    st.write(np.round(cofactor_matrix).astype(int))
+
+    # Step 5: Calculate adjugate matrix (transpose of cofactor matrix)
+    adjugate_matrix = np.round(cofactor_matrix).astype(int) % mod
+    st.write(f"**Step 5:** Adjugate Matrix (Cofactor Matrix mod {mod}):")
+    st.write(adjugate_matrix)
+
+    # Step 6: Calculate the inverse matrix by multiplying adjugate matrix by modular inverse of determinant
+    inv_matrix = (det_mod_inv * adjugate_matrix) % mod
+    st.write(f"**Step 6:** Final Inverse Matrix (mod {mod}):")
+    st.write(inv_matrix)
+
+    return inv_matrix
 
 def display_matrix(matrix, title="Matrix"):
     """Displays a matrix in Streamlit UI."""
@@ -51,11 +60,11 @@ def generate_invertible_matrix(size, mod=26):
         attempt_count += 1
         # Generate a random matrix of the given size
         matrix = np.random.randint(0, mod, (size, size))
-        try:
-            Matrix(matrix).inv_mod(mod)  # Try inverting the matrix
-            return matrix  # Return the matrix if invertible
-        except ValueError:
-            pass  # Continue if matrix is not invertible
+        det = int(np.round(np.linalg.det(matrix)))  # Calculate determinant
+        gcd_value = np.gcd(det, mod)  # Calculate GCD
+
+        if gcd_value == 1:  # Check if the matrix is invertible
+            return matrix
 
 # Function for Chosen Ciphertext Attack (Finding Decryption Key)
 def chosen_ciphertext_attack(plain_text, cipher_text, size, auto_generate=False, invert_choice="Ciphertext"):
@@ -154,6 +163,7 @@ st.write("""
 4. **Matrix Inversion Choice**: Select whether to invert the Ciphertext or Plaintext matrix.
 5. **Automatically Generate**: Optionally enable the checkbox to automatically generate a valid pair.
 """)
+
 
 
 
